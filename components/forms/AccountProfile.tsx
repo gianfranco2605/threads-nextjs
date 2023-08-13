@@ -20,6 +20,8 @@ import * as z from 'zod';
 import Image from "next/image";
 import { ChangeEvent } from "react";
 import { useState } from "react";
+import { isBase64Image } from "@/lib/utils";
+import { useUploadThing } from "@/lib/uploadthing";
 
 
 // ts interface
@@ -37,7 +39,8 @@ interface Props {
 
 const AccountProfile = ({ user, btnTitle }: Props) => {
 
-    const [files, setFiles] = useState<File[]>([])
+    const [files, setFiles] = useState<File[]>([]);
+    const { startUpLoad } = useUploadThing("media");
 
     const form = useForm({
         resolver: zodResolver(userValidation),
@@ -72,11 +75,21 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
 
     }
     // this code is coming from Docs shadcn https://ui.shadcn.com/docs/components/form
-    function onSubmit(values: z.infer<typeof userValidation>) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
-        console.log(values)
-      }
+    const onSubmit = async (values: z.infer<typeof userValidation>) => {
+        
+        const blob = values.profile_photo;
+
+        const hasImageChanged = isBase64Image(blob);
+
+        if(hasImageChanged) {
+            const imgRes = await startUpLoad(files)
+
+            if(imgRes && imgRes[0].fileUrl) {
+                values.profile_photo = imgRes[0].fileUrl;
+            }
+        }
+        // Update user profile
+      };
 
     return (
         // this code is coming from Docs shadcn https://ui.shadcn.com/docs/components/form
